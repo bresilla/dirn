@@ -1,4 +1,4 @@
-import algorithm, times, os, ospaths
+import algorithm, times, os, ospaths, strutils
 
 iterator walker(dir: string, ignore: openArray[string] = [], yieldFilter = {pcFile}, followFilter = {pcDir}): string {.tags: [ReadDirEffect].} =
   var stack = @[dir]
@@ -44,3 +44,9 @@ proc parentInfo(dir: string): string =
 proc elementInfo(dir: string): seq[string] =
   for kind, path in walkDir(dir):
     result.add(path)
+
+proc ancestorInfo(dir: string): seq[string] =
+  var joiner: string = ""
+  for each in dir.split('/'):
+    joiner &= "/" & each
+    result.add(joiner)

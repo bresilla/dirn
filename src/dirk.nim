@@ -1,4 +1,4 @@
-import os, threadpool
+import os, threadpool, strutils
 
 type Dirent* = ref object
     name: string
@@ -12,6 +12,7 @@ type Dirent* = ref object
     nick*: string
 
 proc makeDir*(path: string): Dirent =
+  if not path.fileExists or not path.dirExists or not symlinkExists: return
   let dir = normalizedPath(path)
   let name = if extractFilename(dir) == "": "/" else: extractFilename(dir)
   let dirent = Dirent(
@@ -22,7 +23,7 @@ proc makeDir*(path: string): Dirent =
     nick: name)
   return dirent    
 
-proc `$`(dir: Dirent): string = dir.path
+method `$`(dir: Dirent): string {.base.} = dir.path
 type Dirents* = seq[Dirent]
 
 proc makeDirs*(paths: openArray[string]): Dirents =
@@ -34,18 +35,20 @@ method isRegular*(this: Dirent): bool {.base.} = this.isDir or this.isFile
 method isSymlink*(this: Dirent): bool {.base.} = symlinkExists(this.path)
 method isHidden*(this: Dirent): bool {.base.} = this.name[0] == '.'
 include help
-method getParent*(this: Dirent): Dirents {.base.} = makeDirs([parentInfo(this.path)])
+method getParent*(this: Dirent): Dirent {.base.} = makeDir(parentInfo(this.path))
 method getChildren*(this: Dirent): Dirents {.base.} = makeDirs(elementInfo(this.path))
 method getSiblings*(this: Dirent): Dirents {.base.} = makeDirs(elementInfo(parentInfo(this.path)))
+method getRelatives*(this: Dirent): Dirents {.base.} = makeDirs(elementInfo(parentInfo(parentInfo(this.path))))
+method getAncestors*(this: Dirent): Dirents {.base.} = makeDirs(ancestorInfo(parentInfo(this.path)))
 
 proc fileList*(dir: Dirent, recurr = false, ignore = [".git", "node_modules"]): Dirents =
   if not recurr:
     for kind, path in walkDir(dir.path):
-      var temp: Dirent = makeDir(path)
+      let temp: Dirent = makeDir(path)
       result.add(temp)
   else:
     for path in walker(dir.path, ignore):
-      var temp: Dirent = makeDir(path)
+      let temp: Dirent = makeDir(path)
       result.add(temp)
 
 proc choseFile*(dir: Dirent, incDir = true, incFile = true, incHidden = true, recurrent = false): Dirents =
@@ -56,10 +59,8 @@ proc choseFile*(dir: Dirent, incDir = true, incFile = true, incHidden = true, re
     if recurrent: file.nick = file.path else: file.nick = file.name
     if (file.isDir and incDir) or (file.isFile and incFile):
       if not file.isHidden or incHidden: result.add(file)
+  result.sorter(byType)
 
 var files: Dirents = choseFile(makeDir("/home/bresilla/DATA"), true, true, true, false)
-files.sorter(byType)
-
-for file in files[1].getChildren: echo(file)
-
-
+for file in files: echo file
+#echo files[0].getRelatives
