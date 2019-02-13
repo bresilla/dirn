@@ -1,6 +1,6 @@
-import algorithm, times
+import algorithm, times, os, ospaths
 
-iterator walker(dir: string, ignore: seq[string] = @[], yieldFilter = {pcFile}, followFilter = {pcDir}): string {.tags: [ReadDirEffect].} =
+iterator walker(dir: string, ignore: openArray[string] = [], yieldFilter = {pcFile}, followFilter = {pcDir}): string {.tags: [ReadDirEffect].} =
   var stack = @[dir]
   while stack.len > 0:
     for k, p in walkDir(stack.pop()):
@@ -36,3 +36,11 @@ proc byteSize(b: int64): string =
     bytt = bytt div 1024
     inc(expp)
   result = $bytt & size[expp]
+
+proc parentInfo(dir: string): string =
+  result = dir.parentDir()
+  if result.isRootDir: result = "/"
+
+proc elementInfo(dir: string): seq[string] =
+  for kind, path in walkDir(dir):
+    result.add(path)
