@@ -11,8 +11,9 @@ type Dirent* = ref object
     ignore*: bool
     nick*: string
 
+method `$`*(dir: Dirent): string {.base.} = dir.path
+
 proc makeDir*(path: string): Dirent =
-  if not path.fileExists or not path.dirExists or not symlinkExists: return
   let dir = normalizedPath(path)
   let name = if extractFilename(dir) == "": "/" else: extractFilename(dir)
   let dirent = Dirent(
@@ -23,11 +24,12 @@ proc makeDir*(path: string): Dirent =
     nick: name)
   return dirent    
 
-method `$`(dir: Dirent): string {.base.} = dir.path
 type Dirents* = seq[Dirent]
 
-proc makeDirs*(paths: openArray[string]): Dirents =
-  for i, value in paths: result.add(makeDir(value))
+proc makeDirs*(paths: varargs[string, `$`]): Dirents =
+  for i, value in paths:
+    if value == "": continue 
+    else: result.add(makeDir(value))
 
 method isDir*(this: Dirent): bool {.base.} = dirExists(this.path)
 method isFile*(this: Dirent): bool {.base.} = fileExists(this.path)
@@ -35,6 +37,7 @@ method isRegular*(this: Dirent): bool {.base.} = this.isDir or this.isFile
 method isSymlink*(this: Dirent): bool {.base.} = symlinkExists(this.path)
 method isHidden*(this: Dirent): bool {.base.} = this.name[0] == '.'
 include help
+method getPath*(this: Dirent): Dirent {.base.} = makeDir(this.path)
 method getParent*(this: Dirent): Dirent {.base.} = makeDir(parentInfo(this.path))
 method getChildren*(this: Dirent): Dirents {.base.} = makeDirs(elementInfo(this.path))
 method getSiblings*(this: Dirent): Dirents {.base.} = makeDirs(elementInfo(parentInfo(this.path)))
@@ -47,7 +50,7 @@ proc fileList*(dir: Dirent, recurr = false, ignore = [".git", "node_modules"]): 
       let temp: Dirent = makeDir(path)
       result.add(temp)
   else:
-    for path in walker(dir.path, ignore):
+    for path in walker(dir.path, ignoreDirs=ignore):
       let temp: Dirent = makeDir(path)
       result.add(temp)
 
@@ -61,6 +64,5 @@ proc choseFile*(dir: Dirent, incDir = true, incFile = true, incHidden = true, re
       if not file.isHidden or incHidden: result.add(file)
   result.sorter(byType)
 
-var files: Dirents = choseFile(makeDir("/home/bresilla/DATA"), true, true, true, false)
-for file in files: echo file
-#echo files[0].getRelatives
+#var files: Dirents = choseFile(makeDir("/home/bresilla/DATA"), true, true, true, false)
+#for file in files: echo file

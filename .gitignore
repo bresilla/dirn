@@ -1,2 +1,4 @@
 nimcache/
 *.swp
+src/dirk
+src/explorer

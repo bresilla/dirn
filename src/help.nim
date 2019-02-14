@@ -1,13 +1,16 @@
-import algorithm, times, os, ospaths, strutils
+import algorithm, times, os, strutils
 
-iterator walker(dir: string, ignore: openArray[string] = [], yieldFilter = {pcFile}, followFilter = {pcDir}): string {.tags: [ReadDirEffect].} =
+iterator walker(dir: string, yieldFilter = {pcFile}, followFilter = {pcDir}, ignoreDirs: openarray[string]): string {.tags: [ReadDirEffect].} =
   var stack = @[dir]
   while stack.len > 0:
     for k, p in walkDir(stack.pop()):
-      if k in {pcDir, pcLinkToDir} and k in followFilter and extractFilename(p) notin ignore:
+      if k in {pcDir, pcLinkToDir} and k in followFilter and extractFilename(p) notin ignoreDirs:
         stack.add(p)
       if k in yieldFilter:
         yield p
+
+proc pathExists*(dir: string): bool =
+  if dir.fileExists or dir.dirExists or dir.symlinkExists: return true
 
 type Sorter* = enum
     byType, bySize, byDate
