@@ -1,13 +1,23 @@
 import algorithm, times, os, strutils
-
-iterator walker(dir: string, yieldFilter = {pcFile}, followFilter = {pcDir}, ignoreDirs: openarray[string]): string {.tags: [ReadDirEffect].} =
-  var stack = @[dir]
+  
+template `%`*(a, b: string): string =
+  if a.len > b.len: replace($a, $b, "")
+  else: replace($b, $a, "")
+  
+iterator walker*(dir: string,
+  yieldFilter = {pcFile}, followFilter = {pcDir}, relative = false, 
+  ignoreDirs: openarray[string]=[]): string {.tags: [ReadDirEffect].} =
+  var stack = @[""]
   while stack.len > 0:
-    for k, p in walkDir(stack.pop()):
+    let d = stack.pop()
+    for k, p in walkDir(dir / d, relative = true):
+      let rel = d / p
       if k in {pcDir, pcLinkToDir} and k in followFilter and extractFilename(p) notin ignoreDirs:
-        stack.add(p)
+        stack.add rel
       if k in yieldFilter:
-        yield p
+        yield if relative: rel else: dir / rel
+
+proc createFile*(dir: string) = open(dir, fmWrite).close()
 
 proc pathExists*(dir: string): bool =
   if dir.fileExists or dir.dirExists or dir.symlinkExists: return true

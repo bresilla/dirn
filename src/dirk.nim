@@ -9,9 +9,11 @@ type Dirent* = ref object
     active*: bool
     select*: bool
     ignore*: bool
-    nick*: string
+    nick: string
 
 method `$`*(dir: Dirent): string {.base.} = dir.path
+method `%`*(dir: Dirent): string {.base.} = dir.name
+method `~`*(dir: Dirent): string {.base.} = dir.nick
 
 proc makeDir*(path: string): Dirent =
   let dir = normalizedPath(path)
@@ -37,7 +39,6 @@ method isRegular*(this: Dirent): bool {.base.} = this.isDir or this.isFile
 method isSymlink*(this: Dirent): bool {.base.} = symlinkExists(this.path)
 method isHidden*(this: Dirent): bool {.base.} = this.name[0] == '.'
 include help
-method getPath*(this: Dirent): Dirent {.base.} = makeDir(this.path)
 method getParent*(this: Dirent): Dirent {.base.} = makeDir(parentInfo(this.path))
 method getChildren*(this: Dirent): Dirents {.base.} = makeDirs(elementInfo(this.path))
 method getSiblings*(this: Dirent): Dirents {.base.} = makeDirs(elementInfo(parentInfo(this.path)))
@@ -58,10 +59,13 @@ proc choseFile*(dir: Dirent, incDir = true, incFile = true, incHidden = true, re
   if not dir.isDir: return
   var 
     paths: Dirents = fileList(dir, recurrent)
+    counter: int = 0
   for file in paths:
-    if recurrent: file.nick = file.path else: file.nick = file.name
-    if (file.isDir and incDir) or (file.isFile and incFile):
-      if not file.isHidden or incHidden: result.add(file)
+    file.nick = $file % $dir
+    if ((file.isDir and incDir) or (file.isFile and incFile)) and (not file.isHidden or incHidden):
+        file.number = counter
+        counter.inc
+        result.add(file)
   result.sorter(byType)
 
 #var files: Dirents = choseFile(makeDir("/home/bresilla/DATA"), true, true, true, false)
