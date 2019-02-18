@@ -3,6 +3,10 @@ import algorithm, times, os, strutils
 template `%`*(a, b: string): string =
   if a.len > b.len: replace($a, $b, "")
   else: replace($b, $a, "")
+
+template `??`(a, b: untyped): untyped =
+  let x = a
+  if x.isNil: b else: x
   
 iterator walker*(dir: string,
   yieldFilter = {pcFile}, followFilter = {pcDir}, relative = false, 

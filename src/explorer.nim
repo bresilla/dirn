@@ -1,4 +1,4 @@
-import dirk, os
+import dirk, os, options
 
 proc renameExist(name: string): string =
   if pathExists(name):
@@ -73,3 +73,8 @@ files[2].active = true
 
 for file in files:
   echo ~file
+
+
+proc f(a, b, c: int): int = a+b+c
+
+echo curry(f, 10) (15, 20)
